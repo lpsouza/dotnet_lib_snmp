@@ -7,9 +7,9 @@ using Lextm.SharpSnmpLib.Messaging;
 
 namespace dotnet_lib_snmp
 {
-    class DellSwitch
+    public class DellSwitch
     {
-        public SNMP snmp { get; set; }
+        private SNMP snmp { get; set; }
         public DellSwitch(string ip, string community)
         {
             snmp = new SNMP(ip, community);
