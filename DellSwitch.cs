@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Threading.Tasks;
 using Lextm.SharpSnmpLib;
 using Lextm.SharpSnmpLib.Messaging;
 
@@ -20,9 +21,9 @@ namespace dotnet_lib_snmp
 
             snmp.AddOid("1.3.6.1.2.1.2.1.0"); // ifNumber
             snmp.AddOid("1.3.6.1.4.1.674.10895.3000.1.2.100.1.0"); // productIdentification
-            IList<Variable> ifInfo = snmp.Get();
-            int maxRepetitions = int.Parse(ifInfo[0].Data.ToString());
-            string productIdentification = ifInfo[1].Data.ToString();
+            Task<IList<Variable>> ifInfo = snmp.Get();
+            int maxRepetitions = int.Parse(ifInfo.Result[0].Data.ToString());
+            string productIdentification = ifInfo.Result[1].Data.ToString();
 
             bool isS4048T = (productIdentification.Contains("S4048T-ON")) ? true : false;
 
@@ -37,9 +38,9 @@ namespace dotnet_lib_snmp
                 string id = idItem.Data.ToString();
 
                 snmp.AddOid(string.Join(".", new string[] { "1.3.6.1.2.1.2.2.1.3", id })); // ifType
-                IList<Variable> type = snmp.Get();
+                Task<IList<Variable>> type = snmp.Get();
 
-                if (type[0].Data.ToString() == "6") // ethernet-csmacd
+                if (type.Result[0].Data.ToString() == "6") // ethernet-csmacd
                 {
                     interfaces.Add(new Interface() { Id = iid });
                     Interface iface = interfaces.Where(a => a.Id == iid).FirstOrDefault();
@@ -54,25 +55,25 @@ namespace dotnet_lib_snmp
                     snmp.AddOid(string.Join(".", new string[] { "1.3.6.1.2.1.31.1.1.1.6", id })); // ifHCInOctets
                     snmp.AddOid(string.Join(".", new string[] { "1.3.6.1.2.1.31.1.1.1.10", id })); // ifHCOutOctets
 
-                    IList<Variable> info = snmp.Get();
+                    Task<IList<Variable>> info = snmp.Get();
 
-                    iface.Name = info[0].Data.ToString();
+                    iface.Name = info.Result[0].Data.ToString();
                     if (isS4048T)
                     {
-                        iface.Description = (info[1].Data.ToString() == "\0\0") ? "\"No description\"" : info[1].Data.ToString();
+                        iface.Description = (info.Result[1].Data.ToString() == "\0\0") ? "\"No description\"" : info.Result[1].Data.ToString();
                     }
                     else
                     {
-                        iface.Description = (info[1].Data.ToString() == string.Empty) ? "\"No description\"" : string.Format("\"{0}\"", info[1].Data.ToString());
+                        iface.Description = (info.Result[1].Data.ToString() == string.Empty) ? "\"No description\"" : string.Format("\"{0}\"", info.Result[1].Data.ToString());
                     }
-                    iface.AdminStatus = int.Parse(info[2].Data.ToString());
-                    iface.OperStatus = int.Parse(info[3].Data.ToString());
+                    iface.AdminStatus = int.Parse(info.Result[2].Data.ToString());
+                    iface.OperStatus = int.Parse(info.Result[3].Data.ToString());
 
-                    UInt64 speed = UInt64.Parse(info[4].Data.ToString());
-                    iface.Speed = (speed >= 4294967295) ? UInt64.Parse(info[5].Data.ToString()) : (speed / 1000000);
+                    UInt64 speed = UInt64.Parse(info.Result[4].Data.ToString());
+                    iface.Speed = (speed >= 4294967295) ? UInt64.Parse(info.Result[5].Data.ToString()) : (speed / 1000000);
 
-                    iface.InOctets = UInt64.Parse(info[6].Data.ToString());
-                    iface.OutOctets = UInt64.Parse(info[7].Data.ToString());
+                    iface.InOctets = UInt64.Parse(info.Result[6].Data.ToString());
+                    iface.OutOctets = UInt64.Parse(info.Result[7].Data.ToString());
                 }
 
             }
