@@ -15,22 +15,22 @@ namespace dotnet_lib_snmp
         {
             snmp = new SNMP(ip, community);
         }
-        public IList<Interface> GetInterfaceInfo()
+        public async Task<IList<Interface>> GetInterfaceInfo()
         {
-            IList<Interface> interfaces = new List<Interface>();
+            List<Interface> interfaces = new List<Interface>();
 
             snmp.AddOid("1.3.6.1.2.1.2.1.0"); // ifNumber
             snmp.AddOid("1.3.6.1.4.1.674.10895.3000.1.2.100.1.0"); // productIdentification
-            Task<IList<Variable>> ifInfo = snmp.Get();
-            int maxRepetitions = int.Parse(ifInfo.Result[0].Data.ToString());
-            string productIdentification = ifInfo.Result[1].Data.ToString();
+            IList<Variable> ifInfo = await snmp.Get();
+            int maxRepetitions = int.Parse(ifInfo[0].Data.ToString());
+            string productIdentification = ifInfo[1].Data.ToString();
 
             bool isS4048T = (productIdentification.Contains("S4048T-ON")) ? true : false;
 
             maxRepetitions = (isS4048T) ? maxRepetitions++ : maxRepetitions;
 
             snmp.AddOid("1.3.6.1.2.1.2.2.1.1"); // ifIndex
-            IList<Variable> idList = snmp.GetBulk(maxRepetitions);
+            IList<Variable> idList = await snmp.GetBulk(maxRepetitions);
 
             int iid = 1;
             foreach (var idItem in idList)
@@ -38,9 +38,9 @@ namespace dotnet_lib_snmp
                 string id = idItem.Data.ToString();
 
                 snmp.AddOid(string.Join(".", new string[] { "1.3.6.1.2.1.2.2.1.3", id })); // ifType
-                Task<IList<Variable>> type = snmp.Get();
+                IList<Variable> type = await snmp.Get();
 
-                if (type.Result[0].Data.ToString() == "6") // ethernet-csmacd
+                if (type[0].Data.ToString() == "6") // ethernet-csmacd
                 {
                     interfaces.Add(new Interface() { Id = iid });
                     Interface iface = interfaces.Where(a => a.Id == iid).FirstOrDefault();
@@ -55,26 +55,29 @@ namespace dotnet_lib_snmp
                     snmp.AddOid(string.Join(".", new string[] { "1.3.6.1.2.1.31.1.1.1.6", id })); // ifHCInOctets
                     snmp.AddOid(string.Join(".", new string[] { "1.3.6.1.2.1.31.1.1.1.10", id })); // ifHCOutOctets
 
-                    Task<IList<Variable>> info = snmp.Get();
+                    IList<Variable> info = await snmp.Get();
 
-                    iface.Name = info.Result[0].Data.ToString();
+                    iface.Name = info[0].Data.ToString();
                     if (isS4048T)
                     {
-                        iface.Description = (info.Result[1].Data.ToString() == "\0\0") ? "\"No description\"" : info.Result[1].Data.ToString();
+                        iface.Description = (info[1].Data.ToString() == "\0\0") ? "\"No description\"" : info[1].Data.ToString();
                     }
                     else
                     {
-                        iface.Description = (info.Result[1].Data.ToString() == string.Empty) ? "\"No description\"" : string.Format("\"{0}\"", info.Result[1].Data.ToString());
+                        iface.Description = (info[1].Data.ToString() == string.Empty) ? "\"No description\"" : string.Format("\"{0}\"", info[1].Data.ToString());
                     }
-                    iface.AdminStatus = int.Parse(info.Result[2].Data.ToString());
-                    iface.OperStatus = int.Parse(info.Result[3].Data.ToString());
+                    iface.AdminStatus = int.Parse(info[2].Data.ToString());
+                    iface.OperStatus = int.Parse(info[3].Data.ToString());
 
-                    UInt64 speed = UInt64.Parse(info.Result[4].Data.ToString());
-                    iface.Speed = (speed >= 4294967295) ? UInt64.Parse(info.Result[5].Data.ToString()) : (speed / 1000000);
+                    UInt64 speed = UInt64.Parse(info[4].Data.ToString());
+                    iface.Speed = (speed >= 4294967295) ? UInt64.Parse(info[5].Data.ToString()) : (speed / 1000000);
 
-                    iface.InOctets = UInt64.Parse(info.Result[6].Data.ToString());
-                    iface.OutOctets = UInt64.Parse(info.Result[7].Data.ToString());
+                    iface.InOctets = UInt64.Parse(info[6].Data.ToString());
+                    iface.OutOctets = UInt64.Parse(info[7].Data.ToString());
+
+                    Console.WriteLine("{0}", iface.Name);
                 }
+
 
             }
 

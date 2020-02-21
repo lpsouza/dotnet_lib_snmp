@@ -29,50 +29,20 @@ namespace dotnet_lib_snmp
             Oids.Add(new Variable(new ObjectIdentifier(oid)));
             return Oids;
         }
-        public Task<IList<Variable>> Get()
+        public async Task<IList<Variable>> Get()
         {
-            Task<IList<Variable>> result = null;
-            try
-            {
-                result = Messenger.GetAsync(SnmpVersion, Ip, Community, Oids);
-                Oids = new List<Variable>();
-            }
-            catch (System.Exception err)
-            {
-                Console.WriteLine("#####");
-                Console.WriteLine("METHOD: Get");
-                Console.WriteLine("ERROR: {0}", err.Message);
-                foreach (var oid in Oids)
-                {
-                    Console.WriteLine("OID: {0}", oid);
-                }
-                Console.WriteLine("#####");
-                throw;
-            }
+            IList<Variable> result = null;
+            result = await Messenger.GetAsync(SnmpVersion, Ip, Community, Oids);
+            Oids = new List<Variable>();
             return result;
         }
-        public IList<Variable> GetBulk(int maxRepetitions)
+        public async Task<IList<Variable>> GetBulk(int maxRepetitions)
         {
-            Task<ISnmpMessage> result = null;
-            try
-            {
-                GetBulkRequestMessage message = new GetBulkRequestMessage(0, SnmpVersion, Community, 0, maxRepetitions, Oids);
-                Oids = new List<Variable>();
-                result = message.GetResponseAsync(Ip);
-            }
-            catch (System.Exception err)
-            {
-                Console.WriteLine("#####");
-                Console.WriteLine("METHOD: GetBulk");
-                Console.WriteLine("ERROR: {0}", err.Message);
-                foreach (var oid in Oids)
-                {
-                    Console.WriteLine("OID: {0}", oid);
-                }
-                Console.WriteLine("#####");
-                throw;
-            }
-            return result.Result.Variables();
+            ISnmpMessage result = null;
+            GetBulkRequestMessage message = new GetBulkRequestMessage(0, SnmpVersion, Community, 0, maxRepetitions, Oids);
+            Oids = new List<Variable>();
+            result = await message.GetResponseAsync(Ip);
+            return result.Variables();
         }
     }
 }
